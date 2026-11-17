@@ -1,11 +1,12 @@
 # Remake backend roadmap
-- [ ] Cloud schema: profiles, roles, materials, pickups, collections, batches, wallet, rewards, notifications
-- [ ] Auth: sign-up (email added), login page, logout, role-based workspace switching
-- [ ] Store backed by Cloud (replace localStorage demo state)
-- [ ] Resident: scan (AI), booking, history, rewards redemption, notifications, profile
-- [ ] Collector: assigned stops, QR check, weigh/reject, photo upload, receipts, earnings
-- [ ] Hub: received loads, batch creation, handover
-- [ ] Processor: verification + Green Coins settlement
-- [ ] Business: recurring pickups, history, reports from real data
-- [ ] Admin: users/roles approval, materials rates, rewards, monitoring
-- [ ] Tests + end-to-end check
+- [x] Cloud schema: profiles, roles, materials, pickups, collections, batches, wallet, rewards, notifications
+- [x] Auth: sign-up (email added), login page, logout, role-based workspace switching
+- [x] Store backed by Cloud (replace localStorage demo state)
+- [x] Resident: AI scan, booking, history, rewards redemption, notifications, profile
+- [x] Collector: assigned stops, QR code check, weigh/reject, photo upload, receipts, earnings, offline queue
+- [x] Hub: received loads, batch creation, handover
+- [x] Processor: verification + Green Coins settlement
+- [x] Business: recurring pickups (auto next visit), history, reports from real data
+- [x] Admin: access approvals, users, collector assignment, material rates, partners, rewards, transactions, activity
+- [x] Tests + end-to-end check
+- [ ] Later: live camera QR scanning, live route map, real partner vouchers & collector payouts (not connected yet)

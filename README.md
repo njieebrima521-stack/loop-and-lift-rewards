@@ -27,3 +27,10 @@ npm run dev
 - TypeScript
 - React
 - Tailwind CSS
+
+## Backend (Lovable Cloud)
+
+- Data, sign-in, file storage and the AI waste scanner run on Lovable Cloud; no extra setup is needed.
+- Browser config is injected automatically (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`). Server-only values (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `LOVABLE_API_KEY`) are provided by the platform and never shipped to the browser.
+- The first admin is the email listed in `admin_bootstrap_emails`; that account gets every workspace. Collector, hub, processor and admin sign-ups wait for admin approval.
+- Not connected yet (clearly labelled in the app): live camera QR scanning, live route map, partner voucher fulfilment, collector payouts.

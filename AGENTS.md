@@ -30,6 +30,10 @@ use the editor.
 <!-- LOVABLE:END -->
 
 ## Remake project rules
-- Frontend-only demo: all state lives in `src/lib/remake/store.tsx` (React reducer + localStorage); workflow rules are pure functions in `src/lib/remake/logic.ts` with tests in `logic.test.ts` — keep business rules there, not in pages.
+- Data lives in Lovable Cloud; `src/lib/remake/store.tsx` loads RLS-scoped rows into the `RemakeState` shape the pages already use, and every write goes through SECURITY DEFINER Postgres functions (book_pickup, record_collection, create_batch, verify_batch, redeem_reward, admin_*) — never direct table writes — because balances, weights and roles must be validated server-side. `logic.ts` keeps pure preview helpers mirrored from the SQL rules, tested in `logic.test.ts`.
+- Routes needing sign-in are `_authenticated.*` files under the `_authenticated/route.tsx` gate (ssr: false); its WorkspaceGuard hides workspaces the account has no role for, mirroring the server checks.
+- Pages address pickups/batches by human ref (`PU-1001`, `BT-301`) in URLs and UI; the store maps refs to uuids for backend calls.
+- Collector offline mode queues weigh/reject actions in localStorage with client request ids and replays them idempotently on sync.
+- The waste scanner calls Lovable AI from `scan.functions.ts` (server); results are indicative and 'accepted' requires an active material plus an active processor partner.
 - Each role has its own sidebar items in `src/components/remake/nav.ts` (sidebar shows only the active workspace); below md a role-specific `BottomNav` (MOBILE_NAV) replaces the sidebar, between md and lg the sidebar is an icon rail; switching lives in the header `AccountMenu`, and sign-up picks the starting workspace — institution groups hub, processor and admin.
-- Form state seeded from the store must tolerate post-mount hydration from localStorage (derive or sync in an effect), because SSR renders seed data first.
+- Form state seeded from the store must tolerate data arriving after first render (derive or sync in an effect).
