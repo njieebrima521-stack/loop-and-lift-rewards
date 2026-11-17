@@ -9,4 +9,6 @@
 - [x] Business: recurring pickups (auto next visit), history, reports from real data
 - [x] Admin: access approvals, users, collector assignment, material rates, partners, rewards, transactions, activity
 - [x] Tests + end-to-end check
-- [ ] Later: live camera QR scanning, live route map, real partner vouchers & collector payouts (not connected yet)
+- [x] Payouts: collector payout requests, partner voucher payouts, admin mark-paid/cancel, payout history + CSV
+- [x] Live route map for collectors (Google Maps, saved stop locations, live position)
+- [x] Camera QR scanning on collector stops (typed code stays as fallback)
