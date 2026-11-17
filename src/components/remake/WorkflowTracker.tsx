@@ -3,7 +3,6 @@ import { ArrowRight, Check, ScanLine, Truck, Scale, Boxes, Factory, Coins, Gift 
 import { cn } from "@/lib/utils";
 import { useRemake } from "@/lib/remake/store";
 import type { NavItem } from "./nav";
-import { Simulated } from "./ui";
 
 const STEPS: { key: string; label: string; who: string; icon: typeof ScanLine; to: NavItem["to"] }[] = [
   { key: "scan", label: "Scan waste", who: "Resident", icon: ScanLine, to: "/resident/scan" },
@@ -19,7 +18,7 @@ export function useWorkflowProgress() {
   const { state } = useRemake();
   const p = state.pickups.find((x) => x.id === state.demoPickupId);
   const batch = p?.batchId ? state.batches.find((b) => b.id === p.batchId) : undefined;
-  const redeemedAfter = p?.status === "verified" && state.redemptions.some((r) => r.date >= (p.createdAt ?? "") && r.status === "Issued");
+  const redeemedAfter = p?.status === "verified" && state.redemptions.some((r) => r.date >= (p.createdAt ?? ""));
   const done = [
     !!state.lastScan || !!p,
     !!p,
@@ -51,10 +50,9 @@ export function WorkflowTracker({ className }: { className?: string }) {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-base font-semibold">Recycling workflow</h2>
-            <Simulated label="Guided demo" />
           </div>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {pickup ? <>Following pickup <span className="font-mono font-semibold text-foreground">{pickup.id}</span> · {hint}</> : "Start by scanning waste or booking a pickup as Ebrima."}
+            {pickup ? <>Following pickup <span className="font-mono font-semibold text-foreground">{pickup.id}</span> · {hint}</> : "Start by scanning waste or booking a pickup."}
           </p>
         </div>
         {next && (

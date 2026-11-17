@@ -3,7 +3,6 @@ import { Gift, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRemake } from "@/lib/remake/store";
 import { fmtNum, fmtGmd } from "@/lib/remake/format";
-import { COINS_PER_GMD } from "@/lib/remake/logic";
 
 export function PointsCard() {
   const { state } = useRemake();
@@ -22,7 +21,7 @@ export function PointsCard() {
         <Gift className="size-14 text-primary" strokeWidth={1.6} />
       </div>
       <div className="mt-5 flex items-center justify-between text-sm">
-        <span className="text-ink-muted">≈ {fmtGmd(state.wallet.available / COINS_PER_GMD)} value</span>
+        <span className="text-ink-muted">≈ {fmtGmd(state.wallet.available / (state.settings.coinsPerGmd || 10))} value</span>
         <span className="rounded-full bg-ink-foreground/10 px-2.5 py-0.5 text-xs">+{fmtNum(state.wallet.pending)} pending</span>
       </div>
       <div className="mt-5 grid grid-cols-2 gap-3">

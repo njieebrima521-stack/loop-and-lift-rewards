@@ -1,13 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Bell, ChevronsLeft, ChevronsRight, Coins, FlaskConical, RotateCcw, Search } from "lucide-react";
+import { Bell, ChevronsLeft, ChevronsRight, Cloud, Coins, Search } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { BottomNav } from "./BottomNav";
 import { personaFor, roleFor } from "./nav";
 import { AccountMenu } from "./AccountMenu";
-import { residentNotifications } from "@/lib/remake/notifications";
+import { NotificationsMenu } from "./NotificationsMenu";
 import { Logo } from "./Logo";
 import { useRemake } from "@/lib/remake/store";
 import { fmtNum } from "@/lib/remake/format";
@@ -50,10 +49,10 @@ function NavList({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: (
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const persona = personaFor(path);
-  const { state, reset } = useRemake();
-  const isResident = path.startsWith("/resident");
-  const unread = residentNotifications(state).filter((n) => !state.readNotifications.includes(n.id)).length;
+  const { state } = useRemake();
+  const persona = personaFor(path, state.profile.name, state.me?.orgs);
+  const isResident = path.startsWith("/resident") && !!state.me?.roles.includes("resident");
+  const unread = state.notifications.filter((n) => !n.read).length;
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -73,8 +72,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="space-y-2 border-t border-sidebar-border p-3">
           {!collapsed && (
             <div className="rounded-xl bg-mint p-3 max-lg:hidden text-xs text-mint-foreground">
-              <p className="flex items-center gap-1.5 font-semibold"><FlaskConical className="size-3.5" /> Demo mode</p>
-              <p className="mt-1 opacity-80">All data is simulated and stored only in this browser.</p>
+              <p className="flex items-center gap-1.5 font-semibold"><Cloud className="size-3.5" /> Live data</p>
+              <p className="mt-1 opacity-80">Everything you do here is saved to your Remake account.</p>
             </div>
           )}
           <button
@@ -97,7 +96,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               placeholder="Search pickups, batches, materials…"
               className="h-10 w-full rounded-xl border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
               onKeyDown={(e) => {
-                if (e.key === "Enter") toast("Search is simulated in this demo.");
+                if (e.key === "Enter") toast("Search is coming soon.");
               }}
             />
           </div>
@@ -108,32 +107,15 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <span className="tabular">{fmtNum(state.wallet.available)}</span>
               </Link>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hidden text-muted-foreground md:inline-flex"
-              onClick={() => {
-                reset();
-                toast.success("Demo data reset");
-              }}
-            >
-              <RotateCcw /> Reset demo
-            </Button>
             {isResident ? (
               <Link to="/resident/notifications" className="relative grid size-10 place-items-center rounded-full border bg-card hover:bg-muted" aria-label="Notifications">
                 <Bell className="size-[18px]" />
                 {unread > 0 && <span className="absolute -right-0.5 -top-0.5 grid min-w-5 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">{unread}</span>}
               </Link>
             ) : (
-              <button
-                className="relative grid size-10 place-items-center rounded-full border bg-card hover:bg-muted"
-                aria-label="Notifications"
-                onClick={() => toast("You're all caught up", { description: "Notifications are simulated." })}
-              >
-                <Bell className="size-[18px]" />
-              </button>
+              <NotificationsMenu unread={unread} />
             )}
-            <AccountMenu name={isResident ? state.profile.name : persona.name} />
+            <AccountMenu name={persona.name} />
           </div>
         </header>
         <main className="mx-auto w-full min-w-0 max-w-[1280px] flex-1 px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-5 md:px-8 md:py-8">{children}</main>

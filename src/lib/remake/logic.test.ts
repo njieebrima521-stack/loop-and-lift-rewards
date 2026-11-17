@@ -1,82 +1,37 @@
 import { describe, expect, it } from "vitest";
-import { createSeedState, REWARDS } from "./data";
-import { bookPickup, createBatch, decisionFor, handOverBatch, recordWeight, redeemReward, rejectPickup, setCollectorOffline, syncCollector, verifyBatch } from "./logic";
+import { canRedeem, decisionFor, isValidWeight, pointsFor, settlePickup } from "./logic";
 
-const input = { material: "plastic" as const, bags: 2, date: "2026-11-18", slot: "09:00 – 11:00", address: "x", area: "Kanifing" };
-
-function walkToHub() {
-  let s = bookPickup(createSeedState(), input);
-  const id = s.demoPickupId!;
-  s = recordWeight(s, id, 10); // 10kg plastic = 150 coins
-  return { s, id };
-}
-
-describe("Green Coins workflow", () => {
-  it("recording weight adds points as pending, not available", () => {
-    const seed = createSeedState();
-    const { s } = walkToHub();
-    expect(s.wallet.pending).toBe(seed.wallet.pending + 150);
-    expect(s.wallet.available).toBe(seed.wallet.available);
+describe("Green Coins rules", () => {
+  it("10 kg of plastic at 15 coins/kg earns 150 coins", () => {
+    expect(pointsFor(15, 10)).toBe(150);
   });
 
-  it("points become available only after the processor verifies the batch", () => {
-    const seed = createSeedState();
-    let { s, id } = walkToHub();
-    s = createBatch(s, [id], "Gambia Polymer Works");
-    const batchId = s.pickups.find((p) => p.id === id)!.batchId!;
-    expect(s.wallet.available).toBe(seed.wallet.available);
-    s = handOverBatch(s, batchId);
-    s = verifyBatch(s, batchId, 10, 0, "Grade A");
-    expect(s.wallet.available).toBe(seed.wallet.available + 150);
-    expect(s.wallet.pending).toBe(seed.wallet.pending);
+  it("an 80% accepted batch pays only the accepted share", () => {
+    // 10 kg plastic pickup in a batch of 10 kg actual, 2 kg rejected -> 8 kg -> 120 coins
+    expect(settlePickup(10, 10, 2, 15)).toEqual({ acceptedKg: 8, awarded: 120 });
   });
 
-  it("rejected weight is not paid out", () => {
-    const seed = createSeedState();
-    let { s, id } = walkToHub();
-    s = createBatch(s, [id], "Gambia Polymer Works");
-    const batchId = s.pickups.find((p) => p.id === id)!.batchId!;
-    s = handOverBatch(s, batchId);
-    s = verifyBatch(s, batchId, 8, 2, "Grade B"); // 80% accepted -> 8kg -> 120 coins
-    expect(s.wallet.available).toBe(seed.wallet.available + 120);
+  it("a fully rejected batch pays nothing", () => {
+    expect(settlePickup(10, 10, 10, 15)).toEqual({ acceptedKg: 0, awarded: 0 });
   });
 
-  it("cannot verify a batch that has not been handed over", () => {
-    let { s, id } = walkToHub();
-    s = createBatch(s, [id], "Gambia Polymer Works");
-    const batchId = s.pickups.find((p) => p.id === id)!.batchId!;
-    const before = s.wallet.available;
-    s = verifyBatch(s, batchId, 10, 0, "Grade A");
-    expect(s.wallet.available).toBe(before);
+  it("redeeming refuses when available coins are short", () => {
+    expect(canRedeem(2450, 10000, 8)).toEqual({ ok: false, error: "You need 7550 more Green Coins." });
+    expect(canRedeem(2450, 350, 300)).toEqual({ ok: true });
   });
 
-  it("redeeming spends only available coins and refuses when short", () => {
-    const seed = createSeedState(); // 2450 available, 90 pending
-    const dispenser = REWARDS.find((r) => r.id === "dispenser")!; // 10,000
-    expect(redeemReward(seed, dispenser).ok).toBe(false);
-    const bag = REWARDS.find((r) => r.id === "bag")!; // 350
-    const res = redeemReward(seed, bag);
-    expect(res.ok).toBe(true);
-    if (res.ok) expect(res.state.wallet.available).toBe(2100);
+  it("redeeming refuses when the reward is out of stock or unlisted", () => {
+    expect(canRedeem(5000, 350, 0).ok).toBe(false);
+    expect(canRedeem(5000, 350, 10, false).ok).toBe(false);
   });
 });
 
 describe("collector and processor rules", () => {
-  it("a pickup rejected by the collector creates no pending coins", () => {
-    const seed = createSeedState();
-    const booked = bookPickup(seed, { material: "plastic", bags: 2, date: "2026-11-19", slot: "09:00 – 11:00", address: "x", area: "Kanifing" });
-    const s = rejectPickup(booked, booked.demoPickupId!, "Customer not home");
-    expect(s.pickups.find((p) => p.id === booked.demoPickupId)!.status).toBe("rejected");
-    expect(s.wallet.pending).toBe(seed.wallet.pending);
-  });
-
-  it("weights recorded offline stay unsynced until sync", () => {
-    let s = bookPickup(createSeedState(), { material: "metal", bags: 1, date: "2026-11-19", slot: "09:00 – 11:00", address: "x", area: "Bakau" });
-    const id = s.demoPickupId!;
-    s = recordWeight(setCollectorOffline(s, true), id, 4);
-    expect(s.pickups.find((p) => p.id === id)!.unsynced).toBe(true);
-    s = syncCollector(s);
-    expect(s.pickups.find((p) => p.id === id)!.unsynced).toBeUndefined();
+  it("weights must be above 0 and at most 500 kg", () => {
+    expect(isValidWeight(0)).toBe(false);
+    expect(isValidWeight(-2)).toBe(false);
+    expect(isValidWeight(500.1)).toBe(false);
+    expect(isValidWeight(12.4)).toBe(true);
   });
 
   it("processor decision is accepted, partial or rejected by weight", () => {

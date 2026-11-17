@@ -142,12 +142,12 @@ export function ReceiptCard({ pickup }: { pickup: Pickup }) {
     ["Collected", pickup.collectedAt ? fmtDate(pickup.collectedAt) : "—"],
     ["Collector", pickup.collector],
   ];
-  if (pickup.mine) rows.push(["Green Coins", pickup.status === "verified" ? `${fmtNum(pickup.pointsAwarded ?? 0)} available` : `${fmtNum(pickup.pointsPending ?? 0)} pending`]);
+  if (pickup.mine && pickup.status !== "rejected") rows.push(["Green Coins", pickup.status === "verified" ? `${fmtNum(pickup.pointsAwarded ?? 0)} available` : `${fmtNum(pickup.pointsPending ?? 0)} pending`]);
   return (
     <div className="rounded-2xl border border-dashed bg-card p-5">
       <div className="mb-3 flex items-center justify-between">
         <p className="font-display text-lg font-semibold">Collection receipt</p>
-        <Simulated />
+        {pickup.unsynced && <span className="text-xs font-semibold text-warning">Not synced yet</span>}
       </div>
       <dl className="divide-y text-sm">
         {rows.map(([k, v]) => (

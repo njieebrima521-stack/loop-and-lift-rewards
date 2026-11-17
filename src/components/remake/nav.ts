@@ -132,11 +132,20 @@ export interface Persona {
   initials: string;
 }
 
-export function personaFor(path: string): Persona {
-  if (path.startsWith("/business")) return { role: "Business", name: "Awa Touray", org: "Kololi Sands Hotel", initials: "AT" };
-  if (path.startsWith("/collector")) return { role: "Collector", name: "Lamin Ceesay", org: "Remake Collector · Truck GM-4471", initials: "LC" };
-  if (path.startsWith("/hub")) return { role: "Hub operator", name: "Isatou Bah", org: "Kanifing Recycling Hub", initials: "IB" };
-  if (path.startsWith("/processor")) return { role: "Processor", name: "Modou Sowe", org: "Gambia Polymer Works", initials: "MS" };
-  if (path.startsWith("/admin")) return { role: "Administrator", name: "Mariama Jobe", org: "Remake Operations", initials: "MJ" };
-  return { role: "Resident", name: "Ebrima Njie", org: "Pipeline, Kanifing", initials: "EN" };
+const ROLE_TITLE: Record<string, string> = {
+  resident: "Resident", business: "Business", collector: "Collector", hub: "Hub operator", processor: "Processor", admin: "Administrator",
+};
+
+/** Header identity for the signed-in user in the workspace being viewed. */
+export function personaFor(path: string, name: string, orgs: { name: string; kind: string }[] = []): Persona {
+  const key = roleFor(path).key;
+  const orgOf = (kind: string) => orgs.find((o) => o.kind === kind)?.name;
+  const org =
+    key === "business" ? orgOf("business") ?? "Business" :
+    key === "hub" ? orgOf("hub") ?? "Recycling hub" :
+    key === "processor" ? orgOf("processor") ?? "Processor" :
+    key === "admin" ? "Remake Operations" :
+    key === "collector" ? "Remake Collector" : "Remake member";
+  const initials = name.split(/\s+/).filter(Boolean).map((w) => w[0]).join("").slice(0, 2).toUpperCase() || "RM";
+  return { role: ROLE_TITLE[key] ?? "Member", name: name || "Remake user", org, initials };
 }

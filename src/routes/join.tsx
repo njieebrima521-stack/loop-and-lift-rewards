@@ -6,8 +6,8 @@ import { toast } from "sonner";
 import hero from "@/assets/hero-beach.jpg";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/remake/Logo";
-import { Simulated } from "@/components/remake/ui";
-import { useRemake } from "@/lib/remake/store";
+import { supabase } from "@/integrations/supabase/client";
+import { AREAS } from "@/lib/remake/data";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/join")({
@@ -43,27 +43,43 @@ const INSTITUTIONS = [
 const inputCls = "mt-1.5 h-12 w-full rounded-xl border bg-card px-4 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20";
 
 function JoinPage() {
-  const { state, updateProfile, setWorkspace } = useRemake();
   const [type, setType] = useState<string | null>(null);
   const [inst, setInst] = useState<string | null>(null);
   const navigate = useNavigate();
   const [i, setI] = useState(0);
   const [name, setName] = useState("");
+  const [bizName, setBizName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [pw, setPw] = useState("");
   const [loc, setLoc] = useState("");
+  const [area, setArea] = useState<string>(AREAS[0]!);
+  const [busy, setBusy] = useState(false);
   const s = SLIDES[i]!;
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim().length < 2) { toast.error("Enter your name"); return; }
-    if (!/^\+?[0-9 ]{7,}$/.test(phone)) { toast.error("Enter a valid phone number"); return; }
-    if (pw.length < 6) { toast.error("Password must be at least 6 characters"); return; }
     if (!type) { toast.error("Choose your account type"); return; }
     if (type === "institution" && !inst) { toast.error("Choose your institution workspace"); return; }
+    if (name.trim().length < 2) { toast.error("Enter your name"); return; }
+    if (type === "business" && bizName.trim().length < 2) { toast.error("Enter your business name"); return; }
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) { toast.error("Enter a valid email address"); return; }
+    if (!/^\+?[0-9 ]{7,20}$/.test(phone.trim())) { toast.error("Enter a valid phone number"); return; }
+    if (pw.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     const workspace = type === "institution" ? inst! : type;
-    updateProfile({ name: name.trim(), phone: phone.trim(), ...(loc ? { address: loc } : {}) });
-    toast.success(`Welcome, ${name.split(" ")[0]}!`, { description: "Demo account — no real sign-up happened." });
-    setWorkspace(workspace);
+    setBusy(true);
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password: pw,
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: { full_name: name.trim(), phone: phone.trim(), address: loc.trim(), area, account_type: type, workspace: type === "institution" ? inst : null, business_name: bizName.trim() || null },
+      },
+    });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    if (!data.session) { toast.success("Check your email to confirm your account"); navigate({ to: "/auth" }); return; }
+    const needsApproval = type === "collector" || type === "institution";
+    toast.success(`Welcome, ${name.split(" ")[0]}!`, { description: needsApproval ? "Your access request has been sent to a Remake admin." : undefined });
     navigate({ to: roleByKey(workspace).home });
   };
   return (
@@ -82,7 +98,7 @@ function JoinPage() {
         </div>
       </section>
       <section className="flex flex-col px-6 py-8 md:px-16">
-        <div className="flex items-center justify-between"><Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground"><ArrowLeft className="size-4" /> Back</Link><Simulated label="Demo sign-up" /></div>
+        <div className="flex items-center justify-between"><Link to="/" className="flex items-center gap-2 text-sm text-muted-foreground"><ArrowLeft className="size-4" /> Back</Link></div>
         <div className="mx-auto my-auto w-full max-w-md py-10">
           <Logo />
           <h1 className="mt-8 font-display text-3xl font-semibold">Join with Remake</h1>
@@ -110,17 +126,21 @@ function JoinPage() {
                 </div>
               )}
             </fieldset>
-            <label className="block text-sm font-medium">Name<input className={inputCls} placeholder="Ebrima Njie" value={name} onChange={(e) => setName(e.target.value)} /></label>
+            <label className="block text-sm font-medium">Name<input className={inputCls} autoComplete="name" placeholder="Ebrima Njie" value={name} onChange={(e) => setName(e.target.value)} /></label>
+            {type === "business" && <label className="block text-sm font-medium">Business name<input className={inputCls} placeholder="Kololi Sands Hotel" value={bizName} onChange={(e) => setBizName(e.target.value)} /></label>}
+            <label className="block text-sm font-medium">Email<input type="email" autoComplete="email" className={inputCls} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
             <label className="block text-sm font-medium">Phone<input className={inputCls} placeholder="+220 771 2345" value={phone} onChange={(e) => setPhone(e.target.value)} /></label>
-            <label className="block text-sm font-medium">Password<input type="password" className={inputCls} placeholder="Enter password" value={pw} onChange={(e) => setPw(e.target.value)} /></label>
+            <label className="block text-sm font-medium">Password<input type="password" className={inputCls} autoComplete="new-password" placeholder="At least 8 characters" value={pw} onChange={(e) => setPw(e.target.value)} /></label>
             <label className="block text-sm font-medium">Location
               <div className="relative"><input className={inputCls} placeholder="Your address" value={loc} onChange={(e) => setLoc(e.target.value)} />
-                <button type="button" onClick={() => { setLoc("14 Kairaba Avenue, Pipeline"); toast("Location found (simulated)"); }} className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-lg bg-mint px-2.5 py-1.5 text-xs font-semibold text-mint-foreground"><LocateFixed className="size-3.5" /> Use precise location</button>
+                <button type="button" onClick={() => toast("Precise location isn't available yet — type your address and pick your area.")} className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-lg bg-mint px-2.5 py-1.5 text-xs font-semibold text-mint-foreground"><LocateFixed className="size-3.5" /> Use precise location</button>
               </div>
             </label>
-            <Button type="submit" size="lg" className="w-full">Confirm</Button>
+            <label className="block text-sm font-medium">Area<select className={inputCls} value={area} onChange={(e) => setArea(e.target.value)}>{AREAS.map((a) => <option key={a}>{a}</option>)}</select></label>
+            {(type === "collector" || type === "institution") && <p className="rounded-xl bg-mint p-3 text-xs text-mint-foreground">{type === "collector" ? "Collector" : "Institution"} accounts are activated by a Remake admin after sign-up.</p>}
+            <Button type="submit" size="lg" className="w-full" disabled={busy}>Confirm</Button>
           </form>
-          <p className="mt-6 text-center text-sm text-muted-foreground">Already have an account? <Link to={roleByKey(state.activeWorkspace).home} className="font-semibold text-primary">Login here</Link></p>
+          <p className="mt-6 text-center text-sm text-muted-foreground">Already have an account? <Link to="/auth" className="font-semibold text-primary">Login here</Link></p>
         </div>
       </section>
     </div>

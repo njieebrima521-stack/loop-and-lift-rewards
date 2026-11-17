@@ -3,7 +3,8 @@ import { ArrowRight, Building2, Coins, Factory, Gift, Home, Route as RouteIcon, 
 import heroImg from "@/assets/hero-beach.jpg";
 import { Logo } from "@/components/remake/Logo";
 import { Button } from "@/components/ui/button";
-import { Simulated } from "@/components/remake/ui";
+import { roleByKey } from "@/components/remake/nav";
+import { useRemake } from "@/lib/remake/store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -39,18 +40,27 @@ const FLOW = [
 ];
 
 function Landing() {
+  const { state } = useRemake();
+  const home = state.me?.roles[0] ? roleByKey(state.me.roles[0]).home : null;
   return (
     <div className="min-h-screen bg-background">
       <header className="mx-auto flex h-20 max-w-[1280px] items-center justify-between gap-3 px-4 sm:px-6 md:px-10">
         <Logo />
         <div className="flex items-center gap-2 sm:gap-3">
-          <Simulated label="Demo with simulated data" className="hidden sm:inline-flex" />
-          <Button asChild variant="outline">
-            <Link to="/join">Sign up</Link>
-          </Button>
-          <Button asChild variant="ink">
-            <Link to="/resident">Open<span className="hidden sm:inline">&nbsp;dashboard</span></Link>
-          </Button>
+          {home ? (
+            <Button asChild variant="ink">
+              <Link to={home}>Open<span className="hidden sm:inline">&nbsp;dashboard</span></Link>
+            </Button>
+          ) : (
+            <>
+              <Button asChild variant="outline">
+                <Link to="/join">Sign up</Link>
+              </Button>
+              <Button asChild variant="ink">
+                <Link to="/auth">Log in</Link>
+              </Button>
+            </>
+          )}
         </div>
       </header>
 
@@ -68,10 +78,10 @@ function Landing() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="xl">
-              <Link to="/resident">Explore as a resident <ArrowRight /></Link>
+              <Link to={home ?? "/join"}>{home ? "Go to my dashboard" : "Join as a resident"} <ArrowRight /></Link>
             </Button>
             <Button asChild size="xl" variant="outline">
-              <Link to="/admin">View admin overview</Link>
+              <Link to="/auth">Log in</Link>
             </Button>
           </div>
         </div>
@@ -92,7 +102,7 @@ function Landing() {
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-2xl font-semibold">Choose a role to explore</h2>
-            <p className="mt-1 text-muted-foreground">Each partner gets its own workspace. Switch any time from the sidebar.</p>
+            <p className="mt-1 text-muted-foreground">Each partner gets its own workspace. Switch between the ones on your account from the account menu.</p>
           </div>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
