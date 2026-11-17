@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { ArrowLeft, CheckCircle2, CloudOff, ImageIcon, Loader2, MapPin, Phone, QrCode, Scale, XCircle } from "lucide-react";
+import { ArrowLeft, Camera, CheckCircle2, CloudOff, ImageIcon, Loader2, MapPin, Phone, QrCode, Scale, X, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PageHeader, Panel, PickupStatusBadge, ReceiptCard } from "@/components/remake/ui";
+import { QrScanner } from "@/components/remake/QrScanner";
 import { useRemake } from "@/lib/remake/store";
 import { MATERIALS } from "@/lib/remake/data";
 import { errorMessage, isValidWeight, pointsFor } from "@/lib/remake/logic";
@@ -40,6 +41,7 @@ function StopPage() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [camera, setCamera] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   if (!p) return <div className="rounded-2xl border border-dashed p-10 text-center">Stop {id} isn't on your route. <Link to="/collector/today" className="font-semibold text-primary">Back to route</Link></div>;
@@ -50,15 +52,15 @@ function StopPage() {
   const verified = scan === "ok" || !open;
   const weight = Number(kg);
 
-  const doCheck = async () => {
-    if (!code.trim()) { toast.error("Enter or scan the code on the resident's QR"); return; }
+  const doCheck = async (value: string = code) => {
+    if (!value.trim()) { toast.error("Enter or scan the code on the resident's QR"); return; }
     setScan("checking");
     try {
       if (offline) {
-        const c = code.trim().toUpperCase();
+        const c = value.trim().toUpperCase();
         if (c !== p.code.toUpperCase() && c !== p.id.toUpperCase()) throw new Error("This code does not match the pickup.");
       } else {
-        await verifyPickupCode(p.id, code);
+        await verifyPickupCode(p.id, value);
       }
       setScan("ok");
       toast.success(`Code matched ${p.id}`);
@@ -66,6 +68,12 @@ function StopPage() {
       setScan("idle");
       toast.error(errorMessage(e));
     }
+  };
+
+  const onScanned = (text: string) => {
+    setCamera(false);
+    setCode(text);
+    void doCheck(text);
   };
 
   const onPhoto = async (file: File | undefined) => {
@@ -117,15 +125,20 @@ function StopPage() {
               <div className="flex items-center gap-3 rounded-xl border p-3"><img src={m.image} alt="" className="size-12 rounded-lg object-cover" /><div><p className="font-semibold">{m.name}</p><p className="text-xs text-muted-foreground">{m.examples}</p></div></div>
             </dl>
           </Panel>
-          <Panel title="1 · Check pickup QR" description="Scan the resident's QR with your phone camera app or type the code shown under it.">
+          <Panel title="1 · Check pickup QR" description="Scan the resident's QR with the camera, or type the code shown under it.">
             <div className={cn("relative grid aspect-video place-items-center overflow-hidden rounded-2xl", verified ? "bg-mint" : "bg-ink")}>
               {verified ? <div className="text-center text-mint-foreground"><CheckCircle2 className="mx-auto size-10" /><p className="mt-1 font-mono text-sm font-semibold">{p.code}</p></div>
+                : camera ? <QrScanner onResult={onScanned} onError={(m) => toast.error(m)} />
                 : <><QrCode className="size-16 text-ink-muted" /><div className="absolute inset-6 rounded-xl border-2 border-dashed border-primary" />{scan === "checking" && <div className="absolute inset-x-6 top-1/2 h-0.5 animate-pulse bg-primary" />}</>}
+              {camera && !verified && <button onClick={() => setCamera(false)} className="absolute right-2 top-2 grid size-9 place-items-center rounded-full bg-ink/70 text-ink-foreground" aria-label="Close camera"><X className="size-4" /></button>}
             </div>
             {open && scan !== "ok" && (
-              <div className="mt-4 flex gap-2">
-                <input className={inputCls} placeholder="RMK-PU-…" value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === "Enter" && doCheck()} aria-label="Pickup code" />
-                <Button onClick={doCheck} disabled={scan === "checking"}>{scan === "checking" ? <Loader2 className="animate-spin" /> : "Verify"}</Button>
+              <div className="mt-4 space-y-2">
+                {!camera && <Button className="w-full" variant="secondary" onClick={() => setCamera(true)} disabled={scan === "checking"}><Camera /> Scan with camera</Button>}
+                <div className="flex gap-2">
+                  <input className={inputCls} placeholder="RMK-PU-…" value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === "Enter" && doCheck()} aria-label="Pickup code" />
+                  <Button onClick={() => doCheck()} disabled={scan === "checking"}>{scan === "checking" ? <Loader2 className="animate-spin" /> : "Verify"}</Button>
+                </div>
               </div>
             )}
           </Panel>

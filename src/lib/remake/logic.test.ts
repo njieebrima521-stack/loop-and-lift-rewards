@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canRedeem, decisionFor, isValidWeight, pointsFor, settlePickup } from "./logic";
+import { canRedeem, collectorPayoutGmd, decisionFor, isValidWeight, partnerPayoutGmd, payoutPaymentError, pointsFor, settlePickup } from "./logic";
 
 describe("Green Coins rules", () => {
   it("10 kg of plastic at 15 coins/kg earns 150 coins", () => {
@@ -38,5 +38,26 @@ describe("collector and processor rules", () => {
     expect(decisionFor(10, 0)).toBe("accepted");
     expect(decisionFor(8, 2)).toBe("partial");
     expect(decisionFor(0, 10)).toBe("rejected");
+  });
+});
+
+describe("payout rules", () => {
+  it("a collector is paid GMD 6 per kg: 10 kg + 5.5 kg pays GMD 93", () => {
+    expect(collectorPayoutGmd([10, 5.5], 6)).toBe(93);
+  });
+
+  it("a collector with no unpaid collections is owed nothing", () => {
+    expect(collectorPayoutGmd([], 6)).toBe(0);
+  });
+
+  it("a partner is paid the GMD value of each redeemed voucher", () => {
+    expect(partnerPayoutGmd([50, 50, 250])).toBe(350);
+  });
+
+  it("mobile money and bank payouts need a payment reference; cash does not", () => {
+    expect(payoutPaymentError("Mobile money", "")).toBe("Enter the payment reference from the transfer.");
+    expect(payoutPaymentError("Bank transfer", "TX-88231")).toBeNull();
+    expect(payoutPaymentError("Cash", "")).toBeNull();
+    expect(payoutPaymentError("Cheque", "123")).toBe("Choose how the payout was paid.");
   });
 });

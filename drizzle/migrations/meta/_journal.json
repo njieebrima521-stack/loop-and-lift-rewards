@@ -15,6 +15,13 @@
       "when": 1794949209538,
       "tag": "0001_recurring_pickups_next_visit",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794950651835,
+      "tag": "0002_payouts_and_stop_locations",
+      "breakpoints": true
     }
   ]
 }

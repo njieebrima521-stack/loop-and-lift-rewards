@@ -34,6 +34,27 @@ export function settlePickup(weightKg: number, actualKg: number, rejectedKg: num
   return { acceptedKg, awarded: pointsFor(pointsPerKg, acceptedKg) };
 }
 
+/**
+ * Collector payout: total accepted kilograms times the GMD-per-kg rate, rounded to
+ * the butut (2 decimals). Mirrors admin_payout_balances / _create_collector_payout.
+ */
+export function collectorPayoutGmd(weightsKg: number[], ratePerKg: number): number {
+  const kg = weightsKg.reduce((s, w) => s + w, 0);
+  return Math.round(kg * ratePerKg * 100) / 100;
+}
+
+/** Partner payout: the GMD value of every voucher redeemed with that partner. */
+export function partnerPayoutGmd(voucherValuesGmd: number[]): number {
+  return Math.round(voucherValuesGmd.reduce((s, v) => s + v, 0) * 100) / 100;
+}
+
+/** Marking a payout paid needs a method; transfers also need the payment reference. */
+export function payoutPaymentError(method: string, reference: string): string | null {
+  if (!["Mobile money", "Bank transfer", "Cash"].includes(method)) return "Choose how the payout was paid.";
+  if (method !== "Cash" && reference.trim().length < 3) return "Enter the payment reference from the transfer.";
+  return null;
+}
+
 export type RedeemCheck = { ok: true } | { ok: false; error: string };
 
 /** Only AVAILABLE coins can be spent; pending coins never count. */
@@ -42,6 +63,15 @@ export function canRedeem(available: number, cost: number, stock: number, active
   if (stock <= 0) return { ok: false, error: "This reward is out of stock." };
   if (available < cost) return { ok: false, error: `You need ${cost - available} more Green Coins.` };
   return { ok: true };
+}
+
+/** Straight-line distance in km between two points (haversine). */
+export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat);
+  const dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
 }
 
 /** Readable message from a backend error. */

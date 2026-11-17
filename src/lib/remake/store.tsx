@@ -6,7 +6,7 @@ import { MATERIALS } from "./data";
 import { errorMessage } from "./logic";
 import type {
   AppRole, Batch, BatchDecision, MaterialId, MaterialRate, Me, Notice, Org, Pickup, PickupStatus, Profile,
-  Redemption, RemakeState, Reward, ScanResult, Txn,
+  Payout, Redemption, RemakeState, Reward, ScanResult, Txn,
 } from "./types";
 
 const OFFLINE_KEY = "remake-collector-offline-v1";
@@ -42,7 +42,7 @@ const emptyProfile: Profile = { name: "", phone: "", address: "", area: "Kanifin
 function emptyData(): Omit<RemakeState, "collectorOffline" | "authReady" | "loaded"> {
   return {
     wallet: { available: 0, pending: 0 },
-    pickups: [], batches: [], transactions: [], redemptions: [], lastScan: null, demoPickupId: null,
+    pickups: [], batches: [], transactions: [], redemptions: [], payouts: [], lastScan: null, demoPickupId: null,
     profile: emptyProfile, notifications: [], rates: defaultRates, rewards: [], processors: [],
     settings: { collectorRateGmdPerKg: 6, coinsPerGmd: 10 }, me: null,
   };
@@ -58,7 +58,7 @@ function check<T>(res: { data: T; error: { message: string } | null }): T {
 }
 
 async function loadData(uid: string, email: string) {
-  const [prof, roles, reqs, mems, wallet, pickups, batches, txns, reds, notes, mats, rewards, orgs, settings, scan] = await Promise.all([
+  const [prof, roles, reqs, mems, wallet, pickups, batches, txns, reds, notes, mats, rewards, orgs, settings, scan, payouts] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
     supabase.from("user_roles").select("role").eq("user_id", uid),
     supabase.from("role_requests").select("role").eq("user_id", uid).eq("status", "pending"),
@@ -74,6 +74,7 @@ async function loadData(uid: string, email: string) {
     supabase.from("organizations").select("id,name,kind,status,materials").eq("kind", "processor").order("name"),
     supabase.from("platform_settings").select("key,value"),
     supabase.from("scans").select("*").eq("user_id", uid).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("payouts").select("*").eq("payee_user_id", uid).order("created_at", { ascending: false }).limit(200),
   ]);
 
   const p = check(prof);
@@ -96,7 +97,7 @@ async function loadData(uid: string, email: string) {
 
   const mapped: Pickup[] = pickupRows.map((r) => {
     const c = one(r.collections as unknown as Record<string, unknown> | Record<string, unknown>[]) as
-      | { weight_kg: number | null; receipt_no: string | null; collected_at: string; reject_reason: string | null; photo_path: string | null; offline_recorded: boolean }
+      | { weight_kg: number | null; receipt_no: string | null; collected_at: string; reject_reason: string | null; photo_path: string | null; offline_recorded: boolean; payout_id: string | null }
       | undefined;
     const resident = r.owner_type === "resident";
     return {
@@ -131,6 +132,7 @@ async function loadData(uid: string, email: string) {
       frequency: (r.frequency as Pickup["frequency"]) ?? undefined,
       rejectReason: c?.reject_reason ?? undefined,
       photoTaken: !!c?.photo_path || undefined,
+      payoutId: c?.payout_id ?? undefined,
     };
   });
 
@@ -175,6 +177,11 @@ async function loadData(uid: string, email: string) {
     transactions: (check(txns) ?? []).map<Txn>((t) => ({ id: t.id, type: t.type as Txn["type"], amount: t.amount, label: t.label, date: day(t.created_at)! })),
     redemptions: (check(reds) ?? []).map<Redemption>((r) => ({
       id: r.ref, uuid: r.id, rewardId: r.reward_id, name: r.name, cost: r.cost, date: day(r.created_at)!, voucher: r.voucher, status: r.status as Redemption["status"],
+    })),
+    payouts: (check(payouts) ?? []).map<Payout>((o) => ({
+      uuid: o.id, id: o.ref, kind: o.kind as Payout["kind"], payeeName: o.payee_name, itemCount: o.item_count, quantity: Number(o.quantity),
+      rate: num(o.rate), amountGmd: Number(o.amount_gmd), status: o.status as Payout["status"], method: o.method ?? undefined,
+      reference: o.reference ?? undefined, note: o.note ?? undefined, createdAt: o.created_at, paidAt: o.paid_at ?? undefined,
     })),
     lastScan: s
       ? ({
@@ -231,6 +238,8 @@ interface Ctx {
   verifyBatch: (batchRef: string, actualKg: number, rejectedKg: number, grade: string, note?: string) => Promise<void>;
   lookupBatchCode: (code: string) => Promise<string>;
   redeem: (reward: Reward, clientRequestId: string) => Promise<RedeemResult>;
+  /** Collector asks for their unpaid collections to be paid out; returns the payout ref. */
+  requestPayout: () => Promise<string>;
   setOffline: (offline: boolean) => void;
   sync: () => Promise<number>;
   markNotificationsRead: (ids: string[] | null) => Promise<void>;
@@ -398,6 +407,11 @@ export function RemakeProvider({ children }: { children: ReactNode }) {
           return { ok: false, error: errorMessage(e) };
         }
       },
+      requestPayout: () =>
+        after(async () => {
+          const row = await rpc(supabase.rpc("request_collector_payout"));
+          return (row as { ref: string }).ref;
+        }),
       setOffline: (o) => saveOffline({ ...offline, offline: o }),
       sync: async () => {
         const queue = [...offline.queue];

@@ -4,7 +4,7 @@ import { ChevronRight, CloudOff, MapPin, Phone } from "lucide-react";
 import { PageHeader, Panel, PickupStatusBadge } from "@/components/remake/ui";
 import { useRemake } from "@/lib/remake/store";
 import { MATERIALS } from "@/lib/remake/data";
-import { Simulated } from "@/components/remake/ui";
+import { RouteMap } from "@/components/remake/RouteMap";
 import { fmtShortDate } from "@/lib/remake/format";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_authenticated/collector/today")({
   head: () => ({
     meta: [
       { title: "Collection Route — Remake" },
-      { name: "description", content: "Assigned collection stops in order, with addresses and materials." },
+      { name: "description", content: "Assigned collection stops in order on a live map, with addresses and materials." },
       { property: "og:title", content: "Collection Route — Remake" },
       { property: "og:description", content: "Today's Remake collection route." },
       { property: "og:type", content: "website" },
@@ -56,16 +56,8 @@ function RoutePage() {
             {stops.length === 0 && <li className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">Route complete. 🎉</li>}
           </ol>
         </Panel>
-        <Panel title="Route map" description="Stop order (not a live map)" action={<Simulated label="Map coming soon" />}>
-          <div className="relative aspect-square overflow-hidden rounded-2xl bg-mint">
-            <svg viewBox="0 0 100 100" className="absolute inset-0 size-full text-primary">
-              <path d="M10 85 C 30 70, 25 50, 45 45 S 70 30, 88 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 2" />
-            </svg>
-            {stops.slice(0, 6).map((p, i) => {
-              const t = stops.length > 1 ? i / (Math.min(stops.length, 6) - 1) : 0.5;
-              return <span key={p.id} className="absolute grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-ink text-xs font-bold text-ink-foreground shadow-lift" style={{ left: `${10 + t * 78}%`, top: `${85 - t * 73}%` }}>{i + 1}</span>;
-            })}
-          </div>
+        <Panel title="Route map" description="Your stops in order and where you are now" className="lg:sticky lg:top-24 lg:self-start">
+          <RouteMap stops={stops.map((p) => ({ ref: p.id, customer: p.customer, address: p.address, area: p.area, when: `${fmtShortDate(p.date)} · ${p.slot}`, open: p.status === "scheduled" }))} />
         </Panel>
       </div>
     </div>

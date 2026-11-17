@@ -44,6 +44,8 @@ export interface Pickup {
   /** Collector recorded this while offline; not yet synced. */
   unsynced?: boolean | undefined;
   photoTaken?: boolean | undefined;
+  /** Collector payout this collection belongs to (unset = not yet paid out). */
+  payoutId?: string | undefined;
 }
 
 export type BatchStatus = "ready" | "in_transit" | "verified";
@@ -120,6 +122,28 @@ export interface ScanResult {
   createdAt: string;
 }
 
+export type PayoutStatus = "pending" | "paid" | "cancelled";
+
+export interface Payout {
+  uuid: string;
+  /** Human reference, e.g. PO-501. */
+  id: string;
+  kind: "collector" | "partner";
+  payeeName: string;
+  itemCount: number;
+  /** Kilograms for collector payouts, vouchers for partner payouts. */
+  quantity: number;
+  /** GMD per kg locked when a collector payout was created. */
+  rate?: number | undefined;
+  amountGmd: number;
+  status: PayoutStatus;
+  method?: string | undefined;
+  reference?: string | undefined;
+  note?: string | undefined;
+  createdAt: string;
+  paidAt?: string | undefined;
+}
+
 export interface MaterialRate {
   id: MaterialId;
   pointsPerKg: number;
@@ -171,6 +195,8 @@ export interface RemakeState {
   batches: Batch[];
   transactions: Txn[];
   redemptions: Redemption[];
+  /** Payouts to the signed-in collector. */
+  payouts: Payout[];
   lastScan: ScanResult | null;
   /** The pickup the workflow tracker follows end-to-end. */
   demoPickupId: string | null;

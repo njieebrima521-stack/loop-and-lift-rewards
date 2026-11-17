@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BatchStatusBadge, PageHeader, Panel, PickupStatusBadge, StatCard } from "@/components/remake/ui";
 import { WorkflowTracker } from "@/components/remake/WorkflowTracker";
+import { AdminPayouts } from "@/components/remake/AdminPayouts";
 import { supabase } from "@/integrations/supabase/client";
 import { useRemake } from "@/lib/remake/store";
 import { MATERIAL_LIST, MATERIALS } from "@/lib/remake/data";
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({
     meta: [
       { title: "Admin — Remake" },
-      { name: "description", content: "Platform overview: users, collections, materials, partners, rewards and transactions." },
+      { name: "description", content: "Platform overview: users, collections, materials, partners, rewards, payouts and transactions." },
       { property: "og:title", content: "Admin — Remake" },
       { property: "og:description", content: "Remake operations console." },
       { property: "og:type", content: "website" },
@@ -116,7 +117,7 @@ function AdminPage() {
       <PageHeader eyebrow="Remake Operations" title="Platform admin" description="Live data across every workspace. Changes here apply immediately." />
       <Tabs defaultValue="overview">
         <TabsList className="flex h-auto flex-wrap">
-          {["overview", "users", "collections", "materials", "partners", "rewards", "transactions", "activity"].map((t) => (
+          {["overview", "users", "collections", "materials", "partners", "rewards", "payouts", "transactions", "activity"].map((t) => (
             <TabsTrigger key={t} value={t} className="capitalize">{t}{t === "users" && d.requests.length > 0 && <span className="ml-1.5 grid min-w-5 place-items-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">{d.requests.length}</span>}</TabsTrigger>
           ))}
         </TabsList>
@@ -275,6 +276,10 @@ function AdminPage() {
               </li>
             ))}</ul>
           </Panel>
+        </TabsContent>
+
+        <TabsContent value="payouts" className="mt-6">
+          <AdminPayouts />
         </TabsContent>
 
         <TabsContent value="transactions" className="mt-6">

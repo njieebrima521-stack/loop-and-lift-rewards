@@ -269,6 +269,7 @@ export type Database = {
           hub_received_by: string | null
           id: string
           offline_recorded: boolean
+          payout_id: string | null
           photo_path: string | null
           pickup_id: string
           receipt_no: string | null
@@ -285,6 +286,7 @@ export type Database = {
           hub_received_by?: string | null
           id?: string
           offline_recorded?: boolean
+          payout_id?: string | null
           photo_path?: string | null
           pickup_id: string
           receipt_no?: string | null
@@ -301,6 +303,7 @@ export type Database = {
           hub_received_by?: string | null
           id?: string
           offline_recorded?: boolean
+          payout_id?: string | null
           photo_path?: string | null
           pickup_id?: string
           receipt_no?: string | null
@@ -313,6 +316,13 @@ export type Database = {
             columns: ["collector_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collections_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "payouts"
             referencedColumns: ["id"]
           },
           {
@@ -501,6 +511,118 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      payouts: {
+        Row: {
+          amount_gmd: number
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          id: string
+          item_count: number
+          kind: string
+          method: string | null
+          note: string | null
+          paid_at: string | null
+          paid_by: string | null
+          partner: string | null
+          payee_name: string
+          payee_user_id: string | null
+          quantity: number
+          rate: number | null
+          ref: string
+          reference: string | null
+          requested_by: string | null
+          status: string
+        }
+        Insert: {
+          amount_gmd: number
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          id?: string
+          item_count?: number
+          kind: string
+          method?: string | null
+          note?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          partner?: string | null
+          payee_name: string
+          payee_user_id?: string | null
+          quantity?: number
+          rate?: number | null
+          ref: string
+          reference?: string | null
+          requested_by?: string | null
+          status?: string
+        }
+        Update: {
+          amount_gmd?: number
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          id?: string
+          item_count?: number
+          kind?: string
+          method?: string | null
+          note?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          partner?: string | null
+          payee_name?: string
+          payee_user_id?: string | null
+          quantity?: number
+          rate?: number | null
+          ref?: string
+          reference?: string | null
+          requested_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payouts_payee_user_id_fkey"
+            columns: ["payee_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pickup_locations: {
+        Row: {
+          label: string | null
+          lat: number
+          lng: number
+          pickup_id: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          label?: string | null
+          lat: number
+          lng: number
+          pickup_id: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          label?: string | null
+          lat?: number
+          lng?: number
+          pickup_id?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pickup_locations_pickup_id_fkey"
+            columns: ["pickup_id"]
+            isOneToOne: true
+            referencedRelation: "pickups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pickup_status_history: {
         Row: {
@@ -826,10 +948,13 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          partner: string | null
+          payout_id: string | null
           ref: string
           reward_id: string
           status: string
           user_id: string
+          value_gmd: number | null
           voucher: string
         }
         Insert: {
@@ -838,10 +963,13 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          partner?: string | null
+          payout_id?: string | null
           ref: string
           reward_id: string
           status?: string
           user_id: string
+          value_gmd?: number | null
           voucher: string
         }
         Update: {
@@ -850,13 +978,23 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          partner?: string | null
+          payout_id?: string | null
           ref?: string
           reward_id?: string
           status?: string
           user_id?: string
+          value_gmd?: number | null
           voucher?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "redemptions_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "payouts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "redemptions_reward_id_fkey"
             columns: ["reward_id"]
@@ -1062,6 +1200,37 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _create_collector_payout: {
+        Args: { _actor: string; _collector: string }
+        Returns: {
+          amount_gmd: number
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          id: string
+          item_count: number
+          kind: string
+          method: string | null
+          note: string | null
+          paid_at: string | null
+          paid_by: string | null
+          partner: string | null
+          payee_name: string
+          payee_user_id: string | null
+          quantity: number
+          rate: number | null
+          ref: string
+          reference: string | null
+          requested_by: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payouts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _log: {
         Args: {
           _action: string
@@ -1110,9 +1279,149 @@ export type Database = {
         Args: { _collector: string; _pickup: string }
         Returns: undefined
       }
+      admin_cancel_payout: {
+        Args: { _note: string; _payout: string }
+        Returns: {
+          amount_gmd: number
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          id: string
+          item_count: number
+          kind: string
+          method: string | null
+          note: string | null
+          paid_at: string | null
+          paid_by: string | null
+          partner: string | null
+          payee_name: string
+          payee_user_id: string | null
+          quantity: number
+          rate: number | null
+          ref: string
+          reference: string | null
+          requested_by: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payouts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_create_collector_payout: {
+        Args: { _collector: string }
+        Returns: {
+          amount_gmd: number
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          id: string
+          item_count: number
+          kind: string
+          method: string | null
+          note: string | null
+          paid_at: string | null
+          paid_by: string | null
+          partner: string | null
+          payee_name: string
+          payee_user_id: string | null
+          quantity: number
+          rate: number | null
+          ref: string
+          reference: string | null
+          requested_by: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payouts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_create_partner_payout: {
+        Args: { _partner: string }
+        Returns: {
+          amount_gmd: number
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          id: string
+          item_count: number
+          kind: string
+          method: string | null
+          note: string | null
+          paid_at: string | null
+          paid_by: string | null
+          partner: string | null
+          payee_name: string
+          payee_user_id: string | null
+          quantity: number
+          rate: number | null
+          ref: string
+          reference: string | null
+          requested_by: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payouts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_decide_role_request: {
         Args: { _approve: boolean; _org?: string; _request: string }
         Returns: undefined
+      }
+      admin_mark_payout_paid: {
+        Args: {
+          _method: string
+          _note: string
+          _payout: string
+          _reference: string
+        }
+        Returns: {
+          amount_gmd: number
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          id: string
+          item_count: number
+          kind: string
+          method: string | null
+          note: string | null
+          paid_at: string | null
+          paid_by: string | null
+          partner: string | null
+          payee_name: string
+          payee_user_id: string | null
+          quantity: number
+          rate: number | null
+          ref: string
+          reference: string | null
+          requested_by: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payouts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_payout_balances: {
+        Args: never
+        Returns: {
+          amount_gmd: number
+          item_count: number
+          kind: string
+          payee_name: string
+          payee_user_id: string
+          quantity: number
+        }[]
       }
       admin_set_org_status: {
         Args: { _org: string; _status: string }
@@ -1282,6 +1591,7 @@ export type Database = {
           hub_received_by: string | null
           id: string
           offline_recorded: boolean
+          payout_id: string | null
           photo_path: string | null
           pickup_id: string
           receipt_no: string | null
@@ -1303,10 +1613,13 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          partner: string | null
+          payout_id: string | null
           ref: string
           reward_id: string
           status: string
           user_id: string
+          value_gmd: number | null
           voucher: string
         }
         SetofOptions: {
@@ -1333,6 +1646,7 @@ export type Database = {
           hub_received_by: string | null
           id: string
           offline_recorded: boolean
+          payout_id: string | null
           photo_path: string | null
           pickup_id: string
           receipt_no: string | null
@@ -1345,6 +1659,47 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      request_collector_payout: {
+        Args: never
+        Returns: {
+          amount_gmd: number
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          id: string
+          item_count: number
+          kind: string
+          method: string | null
+          note: string | null
+          paid_at: string | null
+          paid_by: string | null
+          partner: string | null
+          payee_name: string
+          payee_user_id: string | null
+          quantity: number
+          rate: number | null
+          ref: string
+          reference: string | null
+          requested_by: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payouts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_pickup_location: {
+        Args: {
+          _label: string
+          _lat: number
+          _lng: number
+          _pickup: string
+          _source: string
+        }
+        Returns: undefined
       }
       update_my_profile: {
         Args: {
