@@ -53,11 +53,8 @@ function Landing() {
             </Button>
           ) : (
             <>
-              <Button asChild variant="outline">
-                <Link to="/join">Sign up</Link>
-              </Button>
               <Button asChild variant="ink">
-                <Link to="/auth">Log in</Link>
+                <Link to="/join">Enter demo</Link>
               </Button>
             </>
           )}
@@ -78,10 +75,7 @@ function Landing() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="xl">
-              <Link to={home ?? "/join"}>{home ? "Go to my dashboard" : "Join as a resident"} <ArrowRight /></Link>
-            </Button>
-            <Button asChild size="xl" variant="outline">
-              <Link to="/auth">Log in</Link>
+              <Link to={home ?? "/join"}>{home ? "Go to my dashboard" : "Enter the demo"} <ArrowRight /></Link>
             </Button>
           </div>
         </div>

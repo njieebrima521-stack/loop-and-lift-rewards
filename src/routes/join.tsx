@@ -51,7 +51,6 @@ function JoinPage() {
   const [bizName, setBizName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [pw, setPw] = useState("");
   const [loc, setLoc] = useState("");
   const [area, setArea] = useState<string>(AREAS[0]!);
   const [busy, setBusy] = useState(false);
@@ -64,22 +63,18 @@ function JoinPage() {
     if (type === "business" && bizName.trim().length < 2) { toast.error("Enter your business name"); return; }
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) { toast.error("Enter a valid email address"); return; }
     if (!/^\+?[0-9 ]{7,20}$/.test(phone.trim())) { toast.error("Enter a valid phone number"); return; }
-    if (pw.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     const workspace = type === "institution" ? inst! : type;
     setBusy(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password: pw,
+    // Demo mode: no password or email confirmation — the details create a guest account kept in this browser.
+    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signInAnonymously({
       options: {
-        emailRedirectTo: window.location.origin,
-        data: { full_name: name.trim(), phone: phone.trim(), address: loc.trim(), area, account_type: type, workspace: type === "institution" ? inst : null, business_name: bizName.trim() || null },
+        data: { full_name: name.trim(), email: email.trim(), phone: phone.trim(), address: loc.trim(), area, account_type: type, workspace: type === "institution" ? inst : null, business_name: bizName.trim() || null },
       },
     });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
-    if (!data.session) { toast.success("Check your email to confirm your account"); navigate({ to: "/auth" }); return; }
-    const needsApproval = type === "collector" || type === "institution";
-    toast.success(`Welcome, ${name.split(" ")[0]}!`, { description: needsApproval ? "Your access request has been sent to a Remake admin." : undefined });
+    toast.success(`Welcome, ${name.split(" ")[0]}!`);
     navigate({ to: roleByKey(workspace).home });
   };
   return (
@@ -130,17 +125,15 @@ function JoinPage() {
             {type === "business" && <label className="block text-sm font-medium">Business name<input className={inputCls} placeholder="Kololi Sands Hotel" value={bizName} onChange={(e) => setBizName(e.target.value)} /></label>}
             <label className="block text-sm font-medium">Email<input type="email" autoComplete="email" className={inputCls} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
             <label className="block text-sm font-medium">Phone<input className={inputCls} placeholder="+220 771 2345" value={phone} onChange={(e) => setPhone(e.target.value)} /></label>
-            <label className="block text-sm font-medium">Password<input type="password" className={inputCls} autoComplete="new-password" placeholder="At least 8 characters" value={pw} onChange={(e) => setPw(e.target.value)} /></label>
             <label className="block text-sm font-medium">Location
               <div className="relative"><input className={inputCls} placeholder="Your address" value={loc} onChange={(e) => setLoc(e.target.value)} />
                 <button type="button" onClick={() => toast("Precise location isn't available yet — type your address and pick your area.")} className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1 rounded-lg bg-mint px-2.5 py-1.5 text-xs font-semibold text-mint-foreground"><LocateFixed className="size-3.5" /> Use precise location</button>
               </div>
             </label>
             <label className="block text-sm font-medium">Area<select className={inputCls} value={area} onChange={(e) => setArea(e.target.value)}>{AREAS.map((a) => <option key={a}>{a}</option>)}</select></label>
-            {(type === "collector" || type === "institution") && <p className="rounded-xl bg-mint p-3 text-xs text-mint-foreground">{type === "collector" ? "Collector" : "Institution"} accounts are activated by a Remake admin after sign-up.</p>}
-            <Button type="submit" size="lg" className="w-full" disabled={busy}>Confirm</Button>
+            <p className="rounded-xl bg-mint p-3 text-xs text-mint-foreground">Demo access — no password needed. Fill in your details and you go straight into your workspace.</p>
+            <Button type="submit" size="lg" className="w-full" disabled={busy}>Enter Remake</Button>
           </form>
-          <p className="mt-6 text-center text-sm text-muted-foreground">Already have an account? <Link to="/auth" className="font-semibold text-primary">Login here</Link></p>
         </div>
       </section>
     </div>
